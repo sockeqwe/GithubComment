@@ -9,6 +9,7 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 import java.io.File
 import java.io.OutputStream
 import java.io.PrintWriter
+import java.net.ConnectException
 
 internal val OPTION_FILE_TO_POST = "file"
 internal val OPTION_REPO_OWNER = "owner"
@@ -46,7 +47,7 @@ internal sealed class Output {
  */
 private fun printOutput(output: Output, outputStream: OutputStream, errorStream: OutputStream) {
     val printer = PrintWriter(outputStream, true)
-    val errorPrinter = PrintWriter(outputStream, true)
+    val errorPrinter = PrintWriter(errorStream, true)
     when (output) {
         is Output.Error -> errorPrinter.println(output.errorMessage)
         is Output.Successful -> printer.println(output.msg)
@@ -94,14 +95,24 @@ private fun run(args: Array<String>, githubUrl: String): Output {
 
     val file = File(filePath)
     if (file.exists()) {
-        val github = createRetrofit(githubUrl)
-        return postComment(
-                githubUrl = githubUrl,
-                github = github,
-                githubRepoOwner = githubRepoOwner,
-                githubRepoName = githubRepoName,
-                githubPullRequestId = githubPullRequestId
-        )
+
+        return try {
+            val github = createRetrofit(githubUrl)
+
+            postComment(
+                    githubUrl = githubUrl,
+                    github = github,
+                    githubRepoOwner = githubRepoOwner,
+                    githubRepoName = githubRepoName,
+                    githubPullRequestId = githubPullRequestId
+            )
+        } catch (e: ConnectException) {
+            e.printStackTrace()
+            Output.Error("Could not connect to $githubUrl. See stacktrace above")
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Output.Error("An unexpected Error has occurred. See stacktrace above")
+        }
     } else
         return Output.Error("The passed file $filePath does not exist")
 
