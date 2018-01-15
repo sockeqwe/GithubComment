@@ -1,6 +1,7 @@
 package com.hannesdorfmann.githubcomment
 
 import com.github.stkent.githubdiffparser.models.Diff
+import com.github.stkent.githubdiffparser.models.Hunk
 import com.hannesdorfmann.githubcomment.http.GithubApi
 import com.hannesdorfmann.githubcomment.input.*
 import com.tickaroo.tikxml.TikXml
@@ -122,7 +123,6 @@ private fun run(args: Array<String>, githubUrl: String): List<Output> {
     //
     // Ready to start
     //
-
     val githubApi = GithubApi(
             repoName = githubRepoName,
             repoOwner = githubRepoOwner,
@@ -147,7 +147,24 @@ private fun run(args: Array<String>, githubUrl: String): List<Output> {
                         when (comment) {
                             is SimpleComment -> githubApi.postSimpleComment(comment.toGithubComment())
                             is CodeLineComment -> diffRequest.firstOrError().flatMap { diffs ->
-                                githubApi.postCodeLineComment(comment.toGithubComment(diffs))
+                                val diffForFile = diffs.firstOrNull() { filePath == it.toFileName }
+                                if (diffForFile != null) {
+
+                                    val rawDiffLineNumber = diffForFile.getDiffLineNumberForToFileLocation(filePath, comment.lineNumber)
+                                    if (rawDiffLineNumber != null) {
+                                        val position = (rawDiffLineNumber
+                                                - Diff.NUMBER_OF_LINES_PER_DELIMITER
+                                                - diffForFile.headerLines.size
+                                                - Hunk.NUMBER_OF_LINES_PER_DELIMITER);
+                                        githubApi.postCodeLineComment(comment.toGithubComment(position = position, commitSha = sha))
+                                    } else {
+                                        // Could not be posted as CodeLine Comment (CodeReview comment) because the given file hasn't be changed AT THE GIVEN LINE by the pull request
+                                        githubApi.postSimpleComment(comment.toSimpleGithubComment())
+                                    }
+                                } else {
+                                    // Could not be posted as CodeLine Comment (CodeReview comment) because the given file hasn't be changed by the pull request
+                                    githubApi.postSimpleComment(comment.toSimpleGithubComment())
+                                }
                             }.onErrorReturn {
                                 it.printStackTrace()
                                 Output.Error("Could not load the diff for the  pull request from github web api. See stacktrace above.")

@@ -1,6 +1,5 @@
 package com.hannesdorfmann.githubcomment.input
 
-import com.github.stkent.githubdiffparser.models.Diff
 import com.hannesdorfmann.githubcomment.http.GithubCodeLineComment
 import com.hannesdorfmann.githubcomment.http.GithubSimpleComment
 import com.tickaroo.tikxml.annotation.Attribute
@@ -19,7 +18,7 @@ sealed class Comment
 @Xml(name = "codelinecomment")
 internal data class CodeLineComment(
         @Attribute val filePath: String,
-        @Attribute val lineNumber: Long,
+        @Attribute val lineNumber: Int,
         @TextContent val commentText: String
 ) : Comment()
 
@@ -37,8 +36,18 @@ internal fun SimpleComment.toGithubComment() = GithubSimpleComment(
         text = commentText
 )
 
+internal fun CodeLineComment.toSimpleGithubComment() = GithubSimpleComment(
+        text = "The following comment can't be posted directly at $filePath at line $lineNumber because this pull request hasn't changed this file. Message is:\n\n$commentText"
+)
 
-internal fun CodeLineComment.toGithubComment(diffs: List<Diff>): GithubCodeLineComment {
 
-    TODO()
+internal fun CodeLineComment.toGithubComment(commitSha: String, position: Int): GithubCodeLineComment {
+
+
+    return GithubCodeLineComment(
+            text = commentText,
+            position = position,
+            path = filePath,
+            commitSha = commitSha
+    )
 }
