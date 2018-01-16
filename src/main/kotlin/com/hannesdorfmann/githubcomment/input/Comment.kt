@@ -16,7 +16,7 @@ sealed class Comment
  * A Comment on a given line in a given file.
  */
 @Xml(name = "codelinecomment")
-internal data class CodeLineComment(
+data class CodeLineComment(
         @Attribute val filePath: String,
         @Attribute val lineNumber: Int,
         @TextContent val commentText: String
@@ -27,7 +27,7 @@ internal data class CodeLineComment(
  * A simple comment that shows up in the "conversation section" at the pull request on Github
  */
 @Xml(name = "comment")
-internal data class SimpleComment(
+data class SimpleComment(
         @TextContent val commentText: String
 ) : Comment()
 

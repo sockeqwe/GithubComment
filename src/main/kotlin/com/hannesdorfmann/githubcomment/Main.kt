@@ -189,6 +189,7 @@ private fun readXmlFile(xmlFile: File): List<Comment> {
 
     val source = Okio.buffer(Okio.source(xmlFile.inputStream()))
 
-    return tikxml.read(source, Comments::class.java).comments
+    val comments =  tikxml.read(source, Comments::class.java)
+    return comments.comments
 }
 
