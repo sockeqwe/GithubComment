@@ -20,7 +20,7 @@ internal val OPTION_REPO_OWNER = "owner"
     internal val OPTION_REPO_NAME = "repository"
 internal val OPTION_PULL_REQUEST_ID = "pullrequest"
 internal val OPTION_GIT_SHA_HEAD = "sha"
-internal val OPTION_ACCESS_TOKEN = "accessToken"
+internal val OPTION_ACCESS_TOKEN = "accesstoken"
 
 
 /**
@@ -89,11 +89,12 @@ private fun run(args: Array<String>, githubUrl: String): List<Output> {
     options.addOption(OPTION_REPO_NAME, true, "The name of the github repository")
     options.addOption(OPTION_PULL_REQUEST_ID, true, "The id (number) of the github issue / pull request")
     options.addOption(OPTION_GIT_SHA_HEAD, true, "The sha of the last git commit (HEAD). This is optional. If you don't specify the sha, no check with Github API will be done")
+    options.addOption(OPTION_ACCESS_TOKEN, true, "The access token used to authenticate on github. The owner of this access token will be displayed as the author of the comments posted to the pull request")
 
     val parser = DefaultParser()
     val cmd = parser.parse(options, args)
-    val filePath = cmd.getOptionValue(OPTION_FILE_TO_POST) ?: return listOf(Output.Error("The path to the file which content should be posted is not set. Use -$OPTION_FILE_TO_POST option"))
 
+    val filePath = cmd.getOptionValue(OPTION_FILE_TO_POST) ?: return listOf(Output.Error("The path to the file which content should be posted is not set. Use -$OPTION_FILE_TO_POST option"))
     val githubRepoOwner = cmd.getOptionValue(OPTION_REPO_OWNER) ?: return listOf(Output.Error("Github Owner must be set. Use -$OPTION_REPO_OWNER option"))
     val githubRepoName = cmd.getOptionValue(OPTION_REPO_NAME) ?: return listOf(Output.Error("Github repository name must be set. Use -$OPTION_REPO_NAME option"))
     val githubPullRequestIdString = cmd.getOptionValue(OPTION_PULL_REQUEST_ID) ?: return listOf(Output.Error("The github id of the pull request / issue must be set. Use -$OPTION_PULL_REQUEST_ID option"))
