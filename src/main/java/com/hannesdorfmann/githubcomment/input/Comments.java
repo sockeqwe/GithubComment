@@ -8,7 +8,8 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * TODO konvert this to kotlin
+ * TODO konvert this to kotlin.
+ * Seems that there is a bug in tikxml?
  */
 @Xml
 public final class Comments {

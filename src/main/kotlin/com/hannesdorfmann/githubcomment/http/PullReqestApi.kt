@@ -3,6 +3,9 @@ package com.hannesdorfmann.githubcomment.http
 import com.github.stkent.githubdiffparser.GitHubDiffParser
 import com.github.stkent.githubdiffparser.models.Diff
 import com.hannesdorfmann.githubcomment.Output
+import com.hannesdorfmann.githubcomment.http.model.GithubCodeLineComment
+import com.hannesdorfmann.githubcomment.http.model.GithubPullRequest
+import com.hannesdorfmann.githubcomment.http.model.GithubSimpleComment
 import com.squareup.moshi.KotlinJsonAdapterFactory
 import com.squareup.moshi.Moshi
 import io.reactivex.Flowable
@@ -16,11 +19,12 @@ import java.util.concurrent.TimeUnit
 /**
  * A simple facade to make http calls to Github web API
  */
-class GithubApi(
+class PullReqestApi(
         private val githubBaseUrl: String,
         private val repoOwner: String,
         private val repoName: String,
-        private val pullRequestId: Long
+        private val pullRequestId: Long,
+        private val accessToken : String
 ) {
 
     private val github: Github
@@ -47,6 +51,7 @@ class GithubApi(
      */
     internal fun postSimpleComment(comment: GithubSimpleComment): Single<Output> =
             github.postSimpleComment(
+                    accessToken = "token $accessToken",
                     repoOwner = repoOwner,
                     repoName = repoName,
                     pullRequestId = pullRequestId,
@@ -65,6 +70,7 @@ class GithubApi(
      */
     internal fun postCodeLineComment(comment: GithubCodeLineComment): Single<Output> =
             github.postCommentOnGivenFile(
+                    accessToken = "token $accessToken",
                     repoOwner = repoOwner,
                     repoName = repoName,
                     pullRequestId = pullRequestId,
@@ -82,6 +88,7 @@ class GithubApi(
      */
     internal fun getDiffOfTheCurrentPullRequest(): Observable<List<Diff>> =
             github.getPullRequestDiff(
+                    accessToken = "token $accessToken",
                     repoOwner = repoOwner,
                     repoName = repoName,
                     pullRequestId = pullRequestId
@@ -94,8 +101,9 @@ class GithubApi(
     /**
      * Get the meta data for the pull request
      */
-    internal fun getPullRequestInfo(): Single<PullRequest> =
+    internal fun getPullRequestInfo(): Single<GithubPullRequest> =
             github.getPullRequestDetails(
+                    accessToken = "token $accessToken",
                     repoOwner = repoOwner,
                     repoName = repoName,
                     pullRequestId = pullRequestId

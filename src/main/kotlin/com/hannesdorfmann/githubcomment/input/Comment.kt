@@ -1,7 +1,7 @@
 package com.hannesdorfmann.githubcomment.input
 
-import com.hannesdorfmann.githubcomment.http.GithubCodeLineComment
-import com.hannesdorfmann.githubcomment.http.GithubSimpleComment
+import com.hannesdorfmann.githubcomment.http.model.GithubCodeLineComment
+import com.hannesdorfmann.githubcomment.http.model.GithubSimpleComment
 import com.tickaroo.tikxml.annotation.Attribute
 import com.tickaroo.tikxml.annotation.TextContent
 import com.tickaroo.tikxml.annotation.Xml

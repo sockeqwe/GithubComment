@@ -2,7 +2,7 @@ package com.hannesdorfmann.githubcomment
 
 import com.github.stkent.githubdiffparser.models.Diff
 import com.github.stkent.githubdiffparser.models.Hunk
-import com.hannesdorfmann.githubcomment.http.GithubApi
+import com.hannesdorfmann.githubcomment.http.PullReqestApi
 import com.hannesdorfmann.githubcomment.input.*
 import com.tickaroo.tikxml.TikXml
 import io.reactivex.Observable
@@ -17,9 +17,11 @@ import java.io.PrintWriter
 
 internal val OPTION_FILE_TO_POST = "file"
 internal val OPTION_REPO_OWNER = "owner"
-internal val OPTION_REPO_NAME = "repository"
-internal val OPTION_PULL_REQUEST_ID = "id"
+    internal val OPTION_REPO_NAME = "repository"
+internal val OPTION_PULL_REQUEST_ID = "pullrequest"
 internal val OPTION_GIT_SHA_HEAD = "sha"
+internal val OPTION_ACCESS_TOKEN = "accessToken"
+
 
 /**
  * The main method that is used to start the application.
@@ -90,12 +92,14 @@ private fun run(args: Array<String>, githubUrl: String): List<Output> {
 
     val parser = DefaultParser()
     val cmd = parser.parse(options, args)
-    val filePath = cmd.getOptionValue(OPTION_FILE_TO_POST) ?: return listOf(Output.Error("The path to the file which content should be posted is not set. Use $OPTION_FILE_TO_POST option"))
+    val filePath = cmd.getOptionValue(OPTION_FILE_TO_POST) ?: return listOf(Output.Error("The path to the file which content should be posted is not set. Use -$OPTION_FILE_TO_POST option"))
 
-    val githubRepoOwner = cmd.getOptionValue(OPTION_REPO_OWNER) ?: return listOf(Output.Error("Github Owner must be set. Use $OPTION_REPO_OWNER option"))
-    val githubRepoName = cmd.getOptionValue(OPTION_REPO_NAME) ?: return listOf(Output.Error("Github repository name must be set. Use $OPTION_REPO_NAME option"))
-    val githubPullRequestIdString = cmd.getOptionValue(OPTION_PULL_REQUEST_ID) ?: return listOf(Output.Error("The github id of the pull request / issue must be set. Use $OPTION_PULL_REQUEST_ID option"))
-    val sha = cmd.getOptionValue(OPTION_GIT_SHA_HEAD) ?: return listOf(Output.Error("SHA of head of this branch is not specified. Use $OPTION_GIT_SHA_HEAD option"))
+    val githubRepoOwner = cmd.getOptionValue(OPTION_REPO_OWNER) ?: return listOf(Output.Error("Github Owner must be set. Use -$OPTION_REPO_OWNER option"))
+    val githubRepoName = cmd.getOptionValue(OPTION_REPO_NAME) ?: return listOf(Output.Error("Github repository name must be set. Use -$OPTION_REPO_NAME option"))
+    val githubPullRequestIdString = cmd.getOptionValue(OPTION_PULL_REQUEST_ID) ?: return listOf(Output.Error("The github id of the pull request / issue must be set. Use -$OPTION_PULL_REQUEST_ID option"))
+    val sha = cmd.getOptionValue(OPTION_GIT_SHA_HEAD) ?: return listOf(Output.Error("SHA of head of this branch is not specified. Use -$OPTION_GIT_SHA_HEAD option"))
+    val accessToken = cmd.getOptionValue(OPTION_ACCESS_TOKEN) ?: return listOf(Output.Error("You must set a github access token. Use -$OPTION_ACCESS_TOKEN option"))
+
 
 
     val githubPullRequestId = try {
@@ -123,15 +127,16 @@ private fun run(args: Array<String>, githubUrl: String): List<Output> {
     //
     // Ready to start
     //
-    val githubApi = GithubApi(
+    val pullRequest = PullReqestApi(
             repoName = githubRepoName,
             repoOwner = githubRepoOwner,
             pullRequestId = githubPullRequestId,
-            githubBaseUrl = githubUrl
+            githubBaseUrl = githubUrl,
+            accessToken = accessToken
     )
 
 
-    return githubApi.getPullRequestInfo()
+    return pullRequest.getPullRequestInfo()
             .flatMap { pullrequest ->
                 if (pullrequest.head.sha != sha) {
                     Single.just(listOf(Output.Successful("Skipping posting comments because the SHA of the head of this " +
@@ -141,11 +146,11 @@ private fun run(args: Array<String>, githubUrl: String): List<Output> {
                     )
                 } else {
 
-                    val diffRequest: Observable<List<Diff>> = githubApi.getDiffOfTheCurrentPullRequest().share()
+                    val diffRequest: Observable<List<Diff>> = pullRequest.getDiffOfTheCurrentPullRequest().share()
 
                     val httpRequests: List<Single<Output>> = comments.map { comment: Comment ->
                         when (comment) {
-                            is SimpleComment -> githubApi.postSimpleComment(comment.toGithubComment())
+                            is SimpleComment -> pullRequest.postSimpleComment(comment.toGithubComment())
                             is CodeLineComment -> diffRequest.firstOrError().flatMap { diffs ->
                                 val diffForFile = diffs.firstOrNull() { filePath == it.toFileName }
                                 if (diffForFile != null) {
@@ -156,14 +161,14 @@ private fun run(args: Array<String>, githubUrl: String): List<Output> {
                                                 - Diff.NUMBER_OF_LINES_PER_DELIMITER
                                                 - diffForFile.headerLines.size
                                                 - Hunk.NUMBER_OF_LINES_PER_DELIMITER);
-                                        githubApi.postCodeLineComment(comment.toGithubComment(position = position, commitSha = sha))
+                                        pullRequest.postCodeLineComment(comment.toGithubComment(position = position, commitSha = sha))
                                     } else {
                                         // Could not be posted as CodeLine Comment (CodeReview comment) because the given file hasn't be changed AT THE GIVEN LINE by the pull request
-                                        githubApi.postSimpleComment(comment.toSimpleGithubComment())
+                                        pullRequest.postSimpleComment(comment.toSimpleGithubComment())
                                     }
                                 } else {
                                     // Could not be posted as CodeLine Comment (CodeReview comment) because the given file hasn't be changed by the pull request
-                                    githubApi.postSimpleComment(comment.toSimpleGithubComment())
+                                    pullRequest.postSimpleComment(comment.toSimpleGithubComment())
                                 }
                             }.onErrorReturn {
                                 it.printStackTrace()

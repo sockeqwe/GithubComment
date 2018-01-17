@@ -1,4 +1,4 @@
-package com.hannesdorfmann.githubcomment.http
+package com.hannesdorfmann.githubcomment.http.model
 
 import com.squareup.moshi.Json
 
