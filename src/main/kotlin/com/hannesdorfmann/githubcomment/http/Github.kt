@@ -1,5 +1,6 @@
 package com.hannesdorfmann.githubcomment.http
 
+import com.github.stkent.githubdiffparser.models.Diff
 import com.hannesdorfmann.githubcomment.http.model.GithubCodeLineComment
 import com.hannesdorfmann.githubcomment.http.model.GithubPullRequest
 import com.hannesdorfmann.githubcomment.http.model.GithubSimpleComment
@@ -36,7 +37,7 @@ interface Github {
      */
     @GET("repos/{owner}/{repo}/pulls/{pullRequestId}")
     @Headers(value = ["Accept: application/vnd.github.v3.diff"])
-    fun getPullRequestDiff(@Header("Authorization") accessToken: String, @Path("owner") repoOwner: String, @Path("repo") repoName: String, @Path("pullRequestId") pullRequestId: Long): Observable<String>
+    fun getPullRequestDiff(@Header("Authorization") accessToken: String, @Path("owner") repoOwner: String, @Path("repo") repoName: String, @Path("pullRequestId") pullRequestId: Long): Observable<List<Diff>>
 
 
 }

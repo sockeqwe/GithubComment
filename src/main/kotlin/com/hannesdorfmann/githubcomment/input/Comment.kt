@@ -37,7 +37,7 @@ internal fun SimpleComment.toGithubComment() = GithubSimpleComment(
 )
 
 internal fun CodeLineComment.toSimpleGithubComment() = GithubSimpleComment(
-        text = "The following comment can't be posted directly at $filePath at line $lineNumber because this pull request hasn't changed this file. Message is:\n\n$commentText"
+        text = "The following comment can't be posted directly at `$filePath` at `line $lineNumber` because this pull request hasn't changed this file. Message is:\n\n$commentText"
 )
 
 

@@ -17,7 +17,7 @@ import java.io.PrintWriter
 
 internal val OPTION_FILE_TO_POST = "file"
 internal val OPTION_REPO_OWNER = "owner"
-    internal val OPTION_REPO_NAME = "repository"
+internal val OPTION_REPO_NAME = "repository"
 internal val OPTION_PULL_REQUEST_ID = "pullrequest"
 internal val OPTION_GIT_SHA_HEAD = "sha"
 internal val OPTION_ACCESS_TOKEN = "accesstoken"
@@ -102,7 +102,6 @@ private fun run(args: Array<String>, githubUrl: String): List<Output> {
     val accessToken = cmd.getOptionValue(OPTION_ACCESS_TOKEN) ?: return listOf(Output.Error("You must set a github access token. Use -$OPTION_ACCESS_TOKEN option"))
 
 
-
     val githubPullRequestId = try {
         githubPullRequestIdString.toLong()
     } catch (e: NumberFormatException) {
@@ -153,10 +152,10 @@ private fun run(args: Array<String>, githubUrl: String): List<Output> {
                         when (comment) {
                             is SimpleComment -> pullRequest.postSimpleComment(comment.toGithubComment())
                             is CodeLineComment -> diffRequest.firstOrError().flatMap { diffs ->
-                                val diffForFile = diffs.firstOrNull() { filePath == it.toFileName }
+                                val diffForFile = diffs.firstOrNull() { comment.filePath == it.toFileName }
                                 if (diffForFile != null) {
 
-                                    val rawDiffLineNumber = diffForFile.getDiffLineNumberForToFileLocation(filePath, comment.lineNumber)
+                                    val rawDiffLineNumber = diffForFile.getDiffLineNumberForToFileLocation(comment.filePath, comment.lineNumber)
                                     if (rawDiffLineNumber != null) {
                                         val position = (rawDiffLineNumber
                                                 - Diff.NUMBER_OF_LINES_PER_DELIMITER
@@ -166,10 +165,12 @@ private fun run(args: Array<String>, githubUrl: String): List<Output> {
                                     } else {
                                         // Could not be posted as CodeLine Comment (CodeReview comment) because the given file hasn't be changed AT THE GIVEN LINE by the pull request
                                         pullRequest.postSimpleComment(comment.toSimpleGithubComment())
+                                                .map { if (it is Output.Successful) Output.Successful("Could not post code review comment on line ${comment.lineNumber} in file ${comment.filePath} because this line has not been changed by this pull request. Using fallback: ${it.msg}") else it }
                                     }
                                 } else {
                                     // Could not be posted as CodeLine Comment (CodeReview comment) because the given file hasn't be changed by the pull request
                                     pullRequest.postSimpleComment(comment.toSimpleGithubComment())
+                                            .map { if (it is Output.Successful) Output.Successful("Could not post code review comment on line ${comment.lineNumber} in file ${comment.filePath} because the file has not been changed by this pull request. Using fallback: ${it.msg}") else it }
                                 }
                             }.onErrorReturn {
                                 it.printStackTrace()
@@ -195,7 +196,7 @@ private fun readXmlFile(xmlFile: File): List<Comment> {
 
     val source = Okio.buffer(Okio.source(xmlFile.inputStream()))
 
-    val comments =  tikxml.read(source, Comments::class.java)
+    val comments = tikxml.read(source, Comments::class.java)
     return comments.comments
 }
 

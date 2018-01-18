@@ -17,7 +17,7 @@ We consider it as best practice to put this `.jar` executable in your git reposi
 
 # Usage
 ```
-java -jar 
+  java -jar .ci/githubcommentor.jar -file path/to/comments.xml -owner YourGithubUsername -repository YourRepositoryName -pullrequest ThePullRequestId -sha ShaOfPullRequest -accesstoken AccessToken
 ```
 
 ## Input
@@ -52,3 +52,6 @@ The comment or comments (as you can post arbitarry many comments at once) must b
    
 </comments>
 ```
+
+# Permissions
+The `AccessToken` needs admin permission on Repo.

@@ -1,8 +1,8 @@
 package com.hannesdorfmann.githubcomment.http
 
-import com.github.stkent.githubdiffparser.GitHubDiffParser
 import com.github.stkent.githubdiffparser.models.Diff
 import com.hannesdorfmann.githubcomment.Output
+import com.hannesdorfmann.githubcomment.http.converter.DiffConverterFactory
 import com.hannesdorfmann.githubcomment.http.model.GithubCodeLineComment
 import com.hannesdorfmann.githubcomment.http.model.GithubPullRequest
 import com.hannesdorfmann.githubcomment.http.model.GithubSimpleComment
@@ -11,6 +11,7 @@ import com.squareup.moshi.Moshi
 import io.reactivex.Flowable
 import io.reactivex.Observable
 import io.reactivex.Single
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.moshi.MoshiConverterFactory
@@ -24,7 +25,7 @@ class PullReqestApi(
         private val repoOwner: String,
         private val repoName: String,
         private val pullRequestId: Long,
-        private val accessToken : String
+        private val accessToken: String
 ) {
 
     private val github: Github
@@ -35,8 +36,15 @@ class PullReqestApi(
                 .add(KotlinJsonAdapterFactory())
                 .build()
 
+        val okHttp = OkHttpClient.Builder()
+                //.addInterceptor(HttpLoggingInterceptor().also { it.level = HttpLoggingInterceptor.Level.BODY })
+                .build()
+
+
         github = Retrofit.Builder()
                 .baseUrl(githubBaseUrl)
+                .client(okHttp)
+                .addConverterFactory(DiffConverterFactory())
                 .addConverterFactory(MoshiConverterFactory.create(moshi))
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .build()
@@ -92,10 +100,7 @@ class PullReqestApi(
                     repoOwner = repoOwner,
                     repoName = repoName,
                     pullRequestId = pullRequestId
-            ).map { diffAsString ->
-                val parser = GitHubDiffParser()
-                parser.parse(diffAsString.byteInputStream())
-            }
+            )
 
 
     /**
@@ -112,12 +117,13 @@ class PullReqestApi(
     /**
      * Do the exponential backof
      */
-    private fun <T> Single<T>.exponetialBackoff(retries: Int, delay: Long, timeUnit: TimeUnit) = retryWhen { errors ->
-        errors.scan(1) { counter, exception ->
-            counter + 1
-        }.switchMap { retryCount ->
+    private fun <T> Single<T>.exponetialBackoff(retries: Long, delay: Long, timeUnit: TimeUnit) = retryWhen { errors ->
+        errors.doOnNext { it.printStackTrace() }
+                .scan(1) { counter, _ ->
+                    counter + 1
+                }.switchMap { retryCount ->
             Flowable.timer(delay.times(retryCount), timeUnit)
-        }
+        }.take(retries)
         // TODO verify this is working as intended
     }
 
