@@ -1,4 +1,4 @@
-package com.hannesdorfmann.githubcomment
+package com.hannesdorfmann.githubcomment.utils
 
 import java.io.ByteArrayOutputStream
 import java.nio.charset.Charset

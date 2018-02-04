@@ -6,6 +6,7 @@ import com.hannesdorfmann.githubcomment.http.PullReqestApi
 import com.hannesdorfmann.githubcomment.input.*
 import com.tickaroo.tikxml.TikXml
 import io.reactivex.Observable
+import io.reactivex.Scheduler
 import io.reactivex.Single
 import io.reactivex.schedulers.Schedulers
 import okio.Okio
@@ -29,7 +30,8 @@ internal val OPTION_ACCESS_TOKEN = "accesstoken"
 fun main(args: Array<String>) {
     start(args = args,
             outputStream = System.out,
-            errorStream = System.err
+            errorStream = System.err,
+            httpScheduler = Schedulers.io()
     )
 }
 
@@ -64,9 +66,14 @@ private fun printOutput(output: Output, outputStream: OutputStream, errorStream:
 /**
  * This method only exists and has internal visibility for testing purpose
  */
-internal fun start(args: Array<String>, githubUrl: String = "https://api.github.com", outputStream: OutputStream, errorStream: OutputStream) {
+internal fun start(args: Array<String>, githubUrl: String = "https://api.github.com",
+                   outputStream: OutputStream, errorStream: OutputStream,
+                   httpScheduler: Scheduler) {
 
-    val outputs = run(args, githubUrl)
+    val outputs = run(args = args,
+            githubUrl = githubUrl,
+            httpScheduler = httpScheduler
+    )
 
     outputs.forEach {
         printOutput(
@@ -81,7 +88,7 @@ internal fun start(args: Array<String>, githubUrl: String = "https://api.github.
 /**
  * Actually runs (executes) the programm. [start] is only visible for testing purpose
  */
-private fun run(args: Array<String>, githubUrl: String): List<Output> {
+private fun run(args: Array<String>, githubUrl: String, httpScheduler: Scheduler): List<Output> {
 
     val options = Options()
     options.addOption(OPTION_FILE_TO_POST, true, "Path to the file containing the text for the comment that should be posted to the given github issue")
@@ -94,12 +101,18 @@ private fun run(args: Array<String>, githubUrl: String): List<Output> {
     val parser = DefaultParser()
     val cmd = parser.parse(options, args)
 
-    val filePath = cmd.getOptionValue(OPTION_FILE_TO_POST) ?: return listOf(Output.Error("The path to the file which content should be posted is not set. Use -$OPTION_FILE_TO_POST option"))
-    val githubRepoOwner = cmd.getOptionValue(OPTION_REPO_OWNER) ?: return listOf(Output.Error("Github Owner must be set. Use -$OPTION_REPO_OWNER option"))
-    val githubRepoName = cmd.getOptionValue(OPTION_REPO_NAME) ?: return listOf(Output.Error("Github repository name must be set. Use -$OPTION_REPO_NAME option"))
-    val githubPullRequestIdString = cmd.getOptionValue(OPTION_PULL_REQUEST_ID) ?: return listOf(Output.Error("The github id of the pull request / issue must be set. Use -$OPTION_PULL_REQUEST_ID option"))
-    val sha = cmd.getOptionValue(OPTION_GIT_SHA_HEAD) ?: return listOf(Output.Error("SHA of head of this branch is not specified. Use -$OPTION_GIT_SHA_HEAD option"))
-    val accessToken = cmd.getOptionValue(OPTION_ACCESS_TOKEN) ?: return listOf(Output.Error("You must set a github access token. Use -$OPTION_ACCESS_TOKEN option"))
+    val filePath = cmd.getOptionValue(OPTION_FILE_TO_POST)
+            ?: return listOf(Output.Error("The path to the file which content should be posted is not set. Use -$OPTION_FILE_TO_POST option"))
+    val githubRepoOwner = cmd.getOptionValue(OPTION_REPO_OWNER)
+            ?: return listOf(Output.Error("Github Owner must be set. Use -$OPTION_REPO_OWNER option"))
+    val githubRepoName = cmd.getOptionValue(OPTION_REPO_NAME)
+            ?: return listOf(Output.Error("Github repository name must be set. Use -$OPTION_REPO_NAME option"))
+    val githubPullRequestIdString = cmd.getOptionValue(OPTION_PULL_REQUEST_ID)
+            ?: return listOf(Output.Error("The github id of the pull request / issue must be set. Use -$OPTION_PULL_REQUEST_ID option"))
+    val sha = cmd.getOptionValue(OPTION_GIT_SHA_HEAD)
+            ?: return listOf(Output.Error("SHA of head of this branch is not specified. Use -$OPTION_GIT_SHA_HEAD option"))
+    val accessToken = cmd.getOptionValue(OPTION_ACCESS_TOKEN)
+            ?: return listOf(Output.Error("You must set a github access token. Use -$OPTION_ACCESS_TOKEN option"))
 
 
     val githubPullRequestId = try {
@@ -132,7 +145,8 @@ private fun run(args: Array<String>, githubUrl: String): List<Output> {
             repoOwner = githubRepoOwner,
             pullRequestId = githubPullRequestId,
             githubBaseUrl = githubUrl,
-            accessToken = accessToken
+            accessToken = accessToken,
+            scheduler = httpScheduler
     )
 
 
@@ -173,10 +187,10 @@ private fun run(args: Array<String>, githubUrl: String): List<Output> {
                                             .map { if (it is Output.Successful) Output.Successful("Could not post code review comment on line ${comment.lineNumber} in file ${comment.filePath} because the file has not been changed by this pull request. Using fallback: ${it.msg}") else it }
                                 }
                             }.onErrorReturn {
-                                it.printStackTrace()
-                                Output.Error("Could not load the diff for the  pull request from github web api. See stacktrace above.")
-                            }
-                        }.subscribeOn(Schedulers.io())
+                                        it.printStackTrace()
+                                        Output.Error("Could not load the diff for the  pull request from github web api. See stacktrace above.")
+                                    }
+                        }
                     }
 
                     Single.concat(httpRequests).toList()
@@ -188,7 +202,7 @@ private fun run(args: Array<String>, githubUrl: String): List<Output> {
 
 
 /**
- * Reads the XML file with the comments to post back
+ * Reads the XML file with the comments to post back.
  */
 private fun readXmlFile(xmlFile: File): List<Comment> {
     val tikxml = TikXml.Builder()
@@ -197,6 +211,6 @@ private fun readXmlFile(xmlFile: File): List<Comment> {
     val source = Okio.buffer(Okio.source(xmlFile.inputStream()))
 
     val comments = tikxml.read(source, Comments::class.java)
-    return comments.comments
+    return comments.comments ?: emptyList()
 }
 

@@ -1,0 +1,18 @@
+<comments>
+    <!-- A simple comment -->
+    <comment>This is a simple comment</comment>
+
+    <!-- A code review comment on a certain file on a given line number -->
+    <codelinecomment
+            filePath="Foo.java"
+            lineNumber="1">This is a comment on a line</codelinecomment>
+
+    <!-- You can write multiple comments -->
+    <comment>Yet another simple comment</comment>
+
+    <!-- You can write multiple code line comments too -->
+    <codelinecomment
+            filePath="Bar.java"
+            lineNumber="2">Another line comment</codelinecomment>
+
+</comments>

@@ -3,6 +3,7 @@ package com.hannesdorfmann.githubcomment.input;
 import com.tickaroo.tikxml.annotation.Element;
 import com.tickaroo.tikxml.annotation.ElementNameMatcher;
 import com.tickaroo.tikxml.annotation.Xml;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -24,7 +25,7 @@ public final class Comments {
         this.comments = comments;
     }
 
-
+    @Nullable
     public List<Comment> getComments() {
         return comments;
     }

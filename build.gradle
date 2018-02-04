@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.2.10'
+    ext.kotlin_version = '1.2.21'
 
     repositories {
         mavenCentral()
@@ -40,7 +40,7 @@ junitPlatform {
 
 
 shadowJar {
-    baseName = 'githubcommenter'
+    baseName = 'commentor'
     classifier = null
     version = null
 

@@ -1,5 +1,6 @@
-package com.hannesdorfmann.githubcomment
+package com.hannesdorfmann.githubcomment.utils
 
+import com.hannesdorfmann.githubcomment.NetworkTesting
 import org.amshove.kluent.shouldBeEmpty
 import org.amshove.kluent.shouldEqual
 import java.io.File

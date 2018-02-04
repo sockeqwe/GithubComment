@@ -1,4 +1,4 @@
-package com.hannesdorfmann.githubcomment
+package com.hannesdorfmann.githubcomment.utils
 
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -16,6 +16,11 @@ internal val MockWebServer.url: String
  * Reads the given file and enques a HTTP 200 with the file content as body
  */
 internal infix fun MockWebServer.respond200(filePath: String) = enqueue(MockResponse().setBody(readFile(getResourcePath(filePath))))
+
+/**
+ * Reads the given file an enques a HTTP 201 with the file content as body
+ */
+internal infix fun MockWebServer.respond201(filePath: String) = enqueue(MockResponse().setBody(readFile(getResourcePath(filePath))).setResponseCode(201))
 
 internal infix fun MockWebServer.shouldReceivedRequestAt(url: String): HttpMethodAssertion {
     val request = takeRequest()

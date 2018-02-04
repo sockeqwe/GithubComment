@@ -10,7 +10,9 @@ import com.squareup.moshi.KotlinJsonAdapterFactory
 import com.squareup.moshi.Moshi
 import io.reactivex.Flowable
 import io.reactivex.Observable
+import io.reactivex.Scheduler
 import io.reactivex.Single
+import io.reactivex.schedulers.Schedulers
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
@@ -25,7 +27,10 @@ class PullReqestApi(
         private val repoOwner: String,
         private val repoName: String,
         private val pullRequestId: Long,
-        private val accessToken: String
+        private val accessToken: String,
+        private val exponentBackoffRetries: Long = 3,
+        private val exponentialBackoffStartDelayMiliseconds: Long = 1000,
+        private val scheduler: Scheduler
 ) {
 
     private val github: Github
@@ -39,7 +44,6 @@ class PullReqestApi(
         val okHttp = OkHttpClient.Builder()
                 //.addInterceptor(HttpLoggingInterceptor().also { it.level = HttpLoggingInterceptor.Level.BODY })
                 .build()
-
 
         github = Retrofit.Builder()
                 .baseUrl(githubBaseUrl)
@@ -64,11 +68,13 @@ class PullReqestApi(
                     repoName = repoName,
                     pullRequestId = pullRequestId,
                     simpleComment = comment
-            ).exponetialBackoff(
-                    retries = 3,
-                    delay = 500,
-                    timeUnit = TimeUnit.MILLISECONDS
             )
+                    .subscribeOn(scheduler)
+                    .exponetialBackoff(
+                            retries = exponentBackoffRetries,
+                            delay = exponentialBackoffStartDelayMiliseconds,
+                            timeUnit = TimeUnit.MILLISECONDS
+                    )
                     .map { Output.Successful("Successfully posted simple comment to ${commentUrl()}") as Output }
                     .onErrorReturn { Output.Error("An error has occurred while trying to post a simple comment to ${commentUrl()}") }
 
@@ -83,11 +89,13 @@ class PullReqestApi(
                     repoName = repoName,
                     pullRequestId = pullRequestId,
                     lineComment = comment
-            ).exponetialBackoff(
-                    retries = 3,
-                    delay = 500,
-                    timeUnit = TimeUnit.MILLISECONDS
             )
+                    .subscribeOn(scheduler)
+                    .exponetialBackoff(
+                            retries = exponentBackoffRetries,
+                            delay = exponentialBackoffStartDelayMiliseconds,
+                            timeUnit = TimeUnit.MILLISECONDS
+                    )
                     .map { Output.Successful("Successfully posted simple comment to ${commentUrl()}") as Output }
                     .onErrorReturn { Output.Error("An error has occurred while trying to post a simple comment to ${commentUrl()}") }
 
@@ -101,6 +109,7 @@ class PullReqestApi(
                     repoName = repoName,
                     pullRequestId = pullRequestId
             )
+                    .subscribeOn(Schedulers.io())
 
 
     /**
